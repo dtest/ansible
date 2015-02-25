@@ -1,0 +1,9 @@
+---
+# TODO: This is not idempotent because it modifies ~/.ssh/config by removing the block first if it exists
+- name: "Update Vagrant ssh_config block for current environment"
+  shell: ../roles/dtest.vagrant/files/gen_ssh_config.sh {{ vagrant_dir }}
+  register: result
+
+# TODO: This is not idempotent due to lack of multi-line block support
+- name: "Add to ssh_config"
+  lineinfile: dest="~/.ssh/config" state=present line="{{ result.stdout }}"

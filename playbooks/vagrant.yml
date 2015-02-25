@@ -1,0 +1,6 @@
+---
+- hosts: 127.0.0.1
+  gather_facts: no
+  connection: local
+  roles:
+    - {role: dtest.vagrant, vagrant_dir: "/Users/dtest/Vagrant/MHA" }
