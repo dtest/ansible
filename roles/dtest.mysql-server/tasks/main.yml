@@ -1,0 +1,31 @@
+---
+
+- include: configure-mysql.yml
+  tags: always
+
+# Actually installs MySQL if install_type=='package'
+- name: "Install dependencies - Debian"
+  include: "dependencies-Debian.yml"
+  when: ansible_os_family=='Debian'
+  tags: setup
+
+# TODO: WIP
+# Actually installs MySQL if install_type=='package'
+# - name: "Install dependencies - RedHat"
+#   include: "dependencies-RedHat.yml"
+#   when: ansible_os_family=='RedHat'
+#   tags: setup
+
+# TODO: Not supported yet
+# - include: install-binary.yml
+#   when: "'{{ install_type }}' == 'binary' "
+#   tags: setup
+
+- name: "Stop mysql if it was installed"
+  command: /etc/init.d/mysql.dpkg-dist stop
+  when: install_mysql|changed
+  tags: setup
+
+# TODO: Need to fix configuring replication due to mysql_replication module bug #155
+# - include: configure-replication.yml
+#   tags: replication

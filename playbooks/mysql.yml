@@ -1,0 +1,5 @@
+---
+- hosts: "{{ targets }}"
+  sudo: yes
+  roles:
+    - { role: dtest.mysql-server }

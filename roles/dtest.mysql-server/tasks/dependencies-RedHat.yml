@@ -1,0 +1,23 @@
+---
+- name: "Install repository (RedHat)"
+  yum: name="{{ mysql_repository }}" state=present
+  when: "'{{ install_type }}' == 'package' "
+
+- name: Install MySQL-python from yum
+  yum: name="{{ item }}" state=present
+  with_items:
+    - MySQL-python
+
+- name: Install MySQL packages from yum
+  yum: name="{{ item }}" state=present
+  when: "'{{ install_type }}' == 'package' "
+  with_items: mysql_packages
+
+# This is mainly only an issue when installing from binary
+- name: "Install missing percona dependencies (RedHat)"
+  yum: name="{{ item }}" state=present
+  when: "'{{ mysql_flavor }}'=='percona'"
+  with_items:
+    - "{{ percona_deps }}"
+
+# TODO: remove initially generated ib_logfiles/ibdata

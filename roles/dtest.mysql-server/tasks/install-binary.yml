@@ -1,0 +1,63 @@
+---
+- debug: msg="Installing mysql files"
+
+- name: Create install directory
+  file: state=directory path="{{ mysql_install_dir }}" owner="{{ mysql_user }}" group="{{ mysql_group }}" mode=0775
+
+- name: Transfer binaries to install directory
+  get_url: url="{{ mysql_binary_url }}" dest="{{ mysql_install_dir }}/{{ mysql_tarball }}"
+
+# Decompressing based on tar command if directory doesn't exist. Previous attempts to use 'unarchive' took unreasonably long
+# for what I assume was checksum process.
+- name: De-compress binaries
+  command: /bin/tar -xzf {{ mysql_tarball }} creates="{{ mysql_uncompressed_dir }}" chdir="{{ mysql_install_dir }}"
+
+- name: Changing ownership of install directory
+  command: "chown -R {{ mysql_user }}:{{ mysql_group }} {{ mysql_install_dir }}"
+
+- name: Create mysql symlink
+  file: state=link src="{{ mysql_install_dir }}/{{ mysql_uncompressed_dir }}" dest="{{ mysql_symlink }}" owner="{{ mysql_user }}" group="{{ mysql_group }}"
+
+# TODO: Should we instead just add mysql_binary_src to PATH?
+- name: Link mysql binaries
+  shell: ln -s {{ mysql_binary_src }}/* /usr/bin/.
+  ignore_errors: true
+
+- name: Changing ownership of mysql directory
+  command: "chown -R {{ mysql_user }}:{{ mysql_group }} {{ mysql_parent_dir }}"
+
+- name: Configure mysql
+  include: configure-mysql.yml
+
+- name: Run mysql_install_db
+  command: ./scripts/mysql_install_db --basedir={{ mysql_conf['basedir'] }} --datadir={{ mysql_conf['datadir'] }} creates="{{ mysql_conf['datadir'] }}/mysql" chdir="{{ mysql_symlink }}"
+
+- name: Start mysql servers
+  service: name=mysql enabled=yes state=started sleep=5
+
+# TODO: If galera, additional steps for installing
+
+# Secure installation on master1
+# TODO: PasswordVault (for root@localhost and root@127.0.0.1)
+
+- name: Set root user password
+  mysql_user: name=root host="{{ item }}" password="{{ root_password }}" login_unix_socket="{{ mysql_conf['socket'] }}" check_implicit_admin=yes login_user=root login_password="{{ root_password }}"
+  with_items:
+    - localhost
+    - "127.0.0.1"
+
+- name: Drop all root users except localhost and 127.0.0.1
+  mysql_user: name=root host="{{ item }}" state=absent login_unix_socket="{{ mysql_conf['socket'] }}" check_implicit_admin=yes login_user=root login_password="{{ root_password }}"
+  with_items:
+    - "::1"
+    - "mha-master.pythian.com"
+
+# TODO: this doesn't drop 'test%' entries from mysql.db
+- name: Drop anonymous users
+  mysql_user: name="" host="{{ item }}" state=absent login_unix_socket="{{ mysql_conf['socket'] }}" check_implicit_admin=yes login_user=root login_password="{{ root_password }}"
+  with_items:
+    - localhost
+    - "mha-master.pythian.com"
+
+- name: Drop test database
+  mysql_db: name=test state=absent login_unix_socket="{{ mysql_conf['socket'] }}" login_user=root login_password="{{ root_password }}"
