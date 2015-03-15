@@ -8,7 +8,7 @@
     - ec2vars_region: us-west-1
     - ec2vars_az: us-west-1a
     - ec2vars_ami: ami-42908907
-    - ec2vars_keypair: ddowney_plsc15
+    - ec2vars_keypair: xxxx
     - ec2vars_instance_size: t2.micro
   roles:
     - { role: dtest.amazon-common, boto_profile: XXXX, ec2_regions: "{{ ec2vars_region }}" }
