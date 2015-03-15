@@ -7,8 +7,8 @@
     - ec2vars_cluster_prefix: DDowney PLSC15
     - ec2vars_region: us-west-1
     - ec2vars_az: us-west-1a
-    - ec2vars_ami: ami-42908907
-    - ec2vars_keypair: xxxx
+    - ec2vars_ami: ami-5c120b19
+    - ec2vars_keypair: XXXX
     - ec2vars_instance_size: t2.micro
   roles:
     - { role: dtest.amazon-common, boto_profile: XXXX, ec2_regions: "{{ ec2vars_region }}" }
@@ -73,7 +73,7 @@
 
     # - debug: var=security_group
 
-    - name: "Create MySQL instances"
+    - name: "Create instance: MySQL Master"
       ec2:
         region: "{{ ec2vars_region }}"
         vpc_subnet_id: "{{ vpc.subnets[0].id }}"
@@ -84,15 +84,41 @@
         state: present
         wait: yes
         wait_timeout: 300
-        count: 2 # TODO Test out exact_count + count_tag
+        count: 1 # TODO Test out exact_count + count_tag
         monitoring: no
         # private_ip: 10.14.100.22
         assign_public_ip: yes
         volumes:
-          - device_name: /dev/sda1
+          - device_name: /dev/xvdf
             volume_size: 10
             device_type: gp2
         instance_tags:
-          Name: mysql-server
+          Name: mysql-master
           Role: MySQL
+          MySQLRole: Master
+          VPC: "{{ ec2vars_cluster_prefix }}"
+
+    - name: "Create instance: MySQL Slave"
+      ec2:
+        region: "{{ ec2vars_region }}"
+        vpc_subnet_id: "{{ vpc.subnets[0].id }}"
+        image: "{{ ec2vars_ami }}"
+        instance_type: "{{ ec2vars_instance_size }}"
+        group: [ "{{ ec2vars_cluster_prefix }} Security" ] # list of security group id's
+        key_name: "{{ ec2vars_keypair }}"
+        state: present
+        wait: yes
+        wait_timeout: 300
+        count: 1 # TODO Test out exact_count + count_tag
+        monitoring: no
+        # private_ip: 10.14.100.22
+        assign_public_ip: yes
+        volumes:
+          - device_name: /dev/xvdf
+            volume_size: 10
+            device_type: gp2
+        instance_tags:
+          Name: mysql-slave
+          Role: MySQL
+          MySQLRole: Slave
           VPC: "{{ ec2vars_cluster_prefix }}"

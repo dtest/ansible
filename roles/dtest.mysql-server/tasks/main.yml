@@ -27,5 +27,5 @@
   tags: setup
 
 # TODO: Need to fix configuring replication due to mysql_replication module bug #155
-# - include: configure-replication.yml
-#   tags: replication
+- include: configure-replication.yml
+  tags: replication
